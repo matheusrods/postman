@@ -1,21 +1,6 @@
-sudo mv ~/postman/Postman /opt/Postman
+3. Agora move corretamente
+sudo mv Postman /opt/Postman
+🔥 4. Criar comando global
 sudo ln -s /opt/Postman/Postman /usr/bin/postman
-
-
-💡 (Opcional) Criar atalho no menu
-
-Se tiver interface gráfica:
-
-nano ~/.local/share/applications/postman.desktop
-
-Cola isso:
-
-[Desktop Entry]
-Name=Postman
-Exec=/opt/Postman/Postman
-Icon=/opt/Postman/app/resources/app/assets/icon.png
-Type=Application
-Categories=Development;
-
-[c22074q@VDICTXFDRH8398 Postman]$ sudo mv ~/postman/Postman /opt/Postman
-mv: cannot stat '/home/serasa.intranet/c22074q/postman/Postman': No such file or directory
+🔥 5. Testar
+postman
