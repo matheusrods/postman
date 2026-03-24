@@ -9,3 +9,12 @@ Resolving dl.pstmn.io (dl.pstmn.io)... 13.224.125.82, 13.224.125.59, 13.224.125.
 Connecting to dl.pstmn.io (dl.pstmn.io)|13.224.125.82|:443... connected.
 HTTP request sent, awaiting response... 403 URLBlocked
 2026-03-24 14:52:13 ERROR 403: URLBlocked.
+
+
+[c22074q@VDICTXFDRH8398 postman]$ ls -lh Postman.AppImage
+-rwxrwxr-x 1 c22074q c22074q 135M Mar 24 14:59 Postman.AppImage
+[c22074q@VDICTXFDRH8398 postman]$ chmod +x Postman.AppImage 
+[c22074q@VDICTXFDRH8398 postman]$ ./Postman.AppImage 
+bash: ./Postman.AppImage: cannot execute binary file: Exec format error
+[c22074q@VDICTXFDRH8398 postman]$ 
+
