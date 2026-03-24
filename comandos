@@ -1,226 +1,79 @@
-curl 'https://api-staging-operacional.mova.vc/operator/price/657177/convert' \
-  -X 'PATCH' \
-  -H 'accept: application/json, text/plain, */*' \
-  -H 'accept-language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7' \
-  -H 'authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NzQzODE4MzQsImV4cCI6MTc3NDQyNTAzNCwibmJmIjoxNzc0MzgxODMzLCJkYXRhIjp7ImlkIjo4OTk1Mywicm9sZXMiOlt7ImlkIjo5MjI1MiwicGFwZWwiOiJPcGVyYWRvciBHZXJhbCIsInVsdGltYV9zaXR1YWNhbyI6IkNPTlRBIElOQ09NUExFVEEiLCJhdGl2byI6MX1dfX0.Gftcha42kjhGD3ZyMl-NXwSKtJrR2EkOJ76KsxD0SVc' \
-  -H 'cache-control: no-cache, no-store, must-revalidate' \
-  -H 'content-type: application/json' \
-  -H 'origin: https://staging-operacional.mova.vc' \
-  -H 'priority: u=1, i' \
-  -H 'referer: https://staging-operacional.mova.vc/' \
-  -H 'sec-ch-ua: "Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Linux"' \
-  -H 'sec-fetch-dest: empty' \
-  -H 'sec-fetch-mode: cors' \
-  -H 'sec-fetch-site: same-site' \
-  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36' \
-  --data-raw '{"produto_id":23,"automatizar_status":true}'
+Análise técnica – Base para evolução da funcionalidade “Converter cotação” (Gerir Integrações)
 
+Contexto
 
-$priceIdGroup->patch('/convert', OperatorPriceConvert::class)
-                    ->add(OperatorPriceConvertValidation::class)
-                    ->add(new OperatorButtonsAuthorizationHandler(
-                        OperatorButtonPermissions::getPermissionButtons(OperatorButtonPermissions::PATCH_OPERATOR_PRICE_PRICE_ID_CONVERT),
-                        $priceIdGroup
-                    ))
-                    ->setName(OperatorButtonPermissions::getPermissionFullName(OperatorButtonPermissions::PATCH_OPERATOR_PRICE_PRICE_ID_CONVERT));
+Existe atualmente um endpoint responsável por disparar a conversão de cotação (PATCH /operator/price/{priceId}/convert), utilizado no fluxo operacional. Para atender o produto Vector (PF e PJ), será necessário expor essa funcionalidade no módulo “Gerir Integrações”, permitindo que a conversão seja acionada de forma sistêmica, após a assinatura do contrato, sem intervenção manual.
 
-                    <?php
+A necessidade surge devido ao fato de que essas cotações possuem múltiplas datas de desembolso e não podem ser recalculadas após assinatura, exigindo uma etapa de conversão para continuidade do fluxo. No contexto do produto Vector, qualquer inconsistência nessa conversão pode impactar diretamente o processo de desembolso, podendo gerar bloqueios ou duplicidade de operações.
 
-namespace Intec\MovaOperacionalApi\Action\Operator\Price;
+Funcionamento atual
 
-use Intec\MovaBase\Controller\HttpController;
-use Intec\MovaOperacionalApi\Dto\Operator\Price\OperatorPriceConvertDto;
-use Intec\MovaOperacionalApi\Exception\MovaOperacionalApiActionException;
-use Intec\MovaPriceOperations\Model\PriceOperations;
-use Intec\MovaPriceOperations\Model\ProductOperations;
-use Intec\MovaTaskEnqueuer\Service\CloudFnTasksEnqueuer;
-use Intec\MovaTaskEnqueuer\Service\Queue\FnQueue;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+* A API recebe o id da cotação e o produto de destino
+* Realiza validações básicas:
 
-class OperatorPriceConvert extends HttpController
-{
-    private CloudFnTasksEnqueuer $cloudFnTasksEnqueuer;
-    private ProductOperations $product;
-    private PriceOperations $price;
+  * produto origem diferente do destino
+  * compatibilidade de tipo de pessoa
+* Dispara uma tarefa assíncrona (fila) para processamento da conversão
+* Retorna HTTP 204 sem conteúdo
 
-    public function __construct(
-        CloudFnTasksEnqueuer $cloudFnTasksEnqueuer,
-        ProductOperations $product,
-        PriceOperations $price
-    ) {
-        $this->cloudFnTasksEnqueuer = $cloudFnTasksEnqueuer;
-        $this->product = $product;
-        $this->price = $price;
-    }
+A conversão não é executada de forma síncrona, ficando sob responsabilidade de um consumidor de fila (Cloud Function ou equivalente).
 
-    public function __invoke(
-        ServerRequestInterface $request,
-        ResponseInterface $response,
-        int $priceId
-    ): ResponseInterface {
-        /** @var OperatorPriceConvertDto $priceConverterDto */
-        $priceConverterDto = $this->getDto($request);
+Pontos positivos da implementação atual
 
-        $this->checkIfCanConvert($priceId, $priceConverterDto->productId);
+* Uso de processamento assíncrono, adequado para operações potencialmente pesadas
+* Baixo acoplamento entre API e lógica de conversão
+* Separação clara entre validação, autorização e execução
+* Estrutura simples, de fácil entendimento
 
-        $this->cloudFnTasksEnqueuer->sendTask(
-            FnQueue::PRICE_CONVERTION,
-            [
-                'cotacao_id' => $priceId,
-                'produto_id_alvo' => $priceConverterDto->productId,
-                'rodar_motor' => false,
-                'cancelar_original' => true,
-                'automatizar_status' => $priceConverterDto->automateStatus,
-            ]
-        );
+Gargalos e limitações identificadas (com base no código atual)
 
-        return $this->toJson($response, 204);
-    }
+* Não há controle de idempotência. A chamada:
+  $this->cloudFnTasksEnqueuer->sendTask(...)
+  é executada diretamente sem verificação prévia, permitindo múltiplas conversões para a mesma cotação em caso de reprocessamentos ou chamadas duplicadas, podendo gerar inconsistência operacional e necessidade de correção manual.
 
-    private function checkIfCanConvert(int $priceId, int $targetProductId): void
-    {
-        $rawValues = $this->price->getPriceAndComplementaryData($priceId);
-        $price = $rawValues['price'];
-        $productId = $price['produto_id'];
+* Ausência de validação de estado da cotação. No trecho:
+  $rawValues = $this->price->getPriceAndComplementaryData($priceId);
+  $price = $rawValues['price'];
+  não há verificação se a cotação já foi convertida, está cancelada ou se encontra em um estado válido para conversão.
 
-        if ($productId == $targetProductId) {
-            throw new MovaOperacionalApiActionException(
-                code: MovaOperacionalApiActionException::CODE_OPERATORPRICECONVERT_ALREADY_THIS_TYPE
-            );
-        }
+* Dependência implícita da estrutura de dados. O acesso direto a:
+  $rawValues['price']
+  assume que o retorno sempre estará presente e consistente, sem validação defensiva, o que pode causar falhas em cenários de dados inconsistentes.
 
-        if (!$this->product->areOfTheSamePersonType($productId, $targetProductId)) {
-            throw new MovaOperacionalApiActionException(
-                code: MovaOperacionalApiActionException::CODE_OPERATORPRICECONVERT_CANNOT_CONVERT
-            );
-        }
-    }
-}
+* Parâmetros fixos no código. Na chamada da fila:
+  'rodar_motor' => false,
+  'cancelar_original' => true
+  esses valores estão hardcoded, dificultando a evolução da regra de negócio ou reutilização da funcionalidade.
 
+* Falta de rastreabilidade. O retorno:
+  return $this->toJson($response, 204);
+  não fornece identificador da task nem qualquer informação para acompanhamento, impossibilitando o monitoramento da execução.
 
+* Autorização com possível impacto de performance. O trecho:
+  $buttons = $buttonOperator->getButtonsByOperatorId($user['id']);
+  realiza consulta ao banco a cada requisição, sem uso de cache, o que pode se tornar um gargalo em cenários de maior volume.
 
-<?php
+* Ausência de feedback em falhas assíncronas. Caso ocorra erro no processamento da fila, não há mecanismo direto de retorno ou visibilidade para o chamador.
 
-namespace Intec\MovaOperacionalApi\Middleware\Validation\Operator\Price;
+Impactos para o Gerir Integrações
 
-use Intec\MovaBase\Dto\Dto;
-use Intec\MovaBase\Middleware\Validation\Validation;
-use Intec\MovaOperacionalApi\Dto\Operator\Price\OperatorPriceConvertDto;
-use Intec\PipeValidation\Pipe\Boolean;
-use Intec\PipeValidation\Pipe\Integer;
+Para expor essa funcionalidade no Gerir Integrações, é necessário considerar:
 
-class OperatorPriceConvertValidation extends Validation
-{
-    public function getSchema(): array
-    {
-        return [
-            'produto_id' => [
-                'required' => true,
-                'pipes' => [
-                    Integer::class => [
-                        Integer::MIN_VALUE => 1
-                    ]
-                ]
-            ],
-            'automatizar_status' => [
-                'default' => false,
-                'pipes' => [
-                    Boolean::class => []
-                ]
-            ]
-        ];
-    }
+* A ação será disparada por fluxo automatizado, não mais apenas manual
+* A ausência de idempotência pode gerar conversões duplicadas em cenários de retry
+* A falta de rastreabilidade dificulta o acompanhamento do fluxo
+* A ausência de validação de estado aumenta o risco de inconsistência após assinatura
 
-    public function createDtoFromParams(array $params): Dto
-    {
-        return new OperatorPriceConvertDto(
-            $params['produto_id'],
-            $params['automatizar_status'],
-        );
-    }
-}
+Recomendações para evolução
 
+* Implementar controle de idempotência por cotação
+* Retornar identificador da tarefa no momento do disparo
+* Criar mecanismo de acompanhamento de status da conversão
+* Incluir validações de estado da cotação antes de enfileirar
+* Avaliar externalização de parâmetros atualmente fixos
+* Considerar otimização ou cache na camada de autorização
+* Garantir observabilidade e tratamento de erro no processamento assíncrono
 
-<?php
+Conclusão
 
-namespace Intec\MovaOperacionalApi\Middleware;
-
-use Intec\MovaOperacionalApi\Exception\MovaOperacionalApiMiddlewareException;
-use Intec\MovaOperacionalApi\Model\ButtonOperator;
-use Intec\MovaOperacionalApi\Model\Buttons;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
-use Slim\Routing\RouteCollectorProxy;
-
-class OperatorButtonsAuthorizationHandler
-{
-    public function __construct(private array $buttonsAllowed, private RouteCollectorProxy $app)
-    {
-    }
-
-    public function __invoke(
-        ServerRequestInterface $request,
-        RequestHandlerInterface $requestHandler
-    ): ResponseInterface {
-        $user = $request->getAttribute('auth');
-
-        if (!$this->buttonsAllowed) {
-            return $requestHandler->handle($request);
-        }
-
-        /** @var ButtonOperator $buttonOperator */
-        $buttonOperator = $this->app->getContainer()->get(ButtonOperator::class);
-
-        $buttons = $buttonOperator->getButtonsByOperatorId($user['id']);
-
-        if (!$buttons || !$this->operatorHasAuthorization($buttons)) {
-            throw new MovaOperacionalApiMiddlewareException(
-                code: MovaOperacionalApiMiddlewareException::CODE_OPERATOR_BUTTON_ACCESS_DENIED
-            );
-        }
-
-        return $requestHandler->handle($request);
-    }
-
-    private function operatorHasAuthorization(array $operatorButtons): bool
-    {
-        $operatorButtonsName = array_column($operatorButtons, 'nome');
-
-        $operatorHasAuthorization = (bool) array_intersect($this->buttonsAllowed, $operatorButtonsName);
-
-        $endpointHasntAuthorization = (bool) array_intersect($this->buttonsAllowed, [Buttons::B0]);
-
-        return $operatorHasAuthorization || $endpointHasntAuthorization;
-    }
-}
-
-
- public static function getPermissionButtons(string $permissionName): array
-    {
-        return self::PERMISSIONS[$permissionName]['botoes'];
-    }
-
-     public static function getPermissionFullName(string $permissionName): string
-    {
-        $permission = self::PERMISSIONS[$permissionName];
-
-        return sprintf('%s: %s', $permissionName, $permission['descricao']);
-    }
-
-    [GT] Análise técnica da funcionalidade atual "Converter cotação"
-Permitir converter cotação via "Gerir Integrações"
-
-
-Para o fluxo da esteira de originação do produto Vector (PF e PJ), cliente da Polígono, é necessário desenvolver uma ação no Gerir Integrações que permita disparar a conversão de cotação.
-
-Essa evolução se torna essencial porque as cotações desse produto possuem mais de uma data de desembolso e, após a assinatura do contrato, não é possível recalcular a operação.
-No fluxo originalmente proposto, a conversão da cotação seria realizada manualmente pelo time operacional para dar continuidade ao processo de desembolso após a assinatura. Entretanto, considerando o modelo atual e a necessidade de automação, faz-se necessária uma solução sistêmica.
-
-Solução
-Análise técnica da funcionalidade de converter cotação existente.
-Identificação de pontos de melhoria e gargalos de performance.
-Desenvolvimento da Ação para Converter Cotação no Gerir Integrações.
+A funcionalidade atual atende ao fluxo manual existente e possui uma base arquitetural adequada (assíncrona e desacoplada). No entanto, para suportar o uso no Gerir Integrações de forma segura e automatizada, é necessário evoluir pontos relacionados a controle de execução, rastreabilidade e validação de estado, reduzindo riscos de inconsistência e retrabalho operacional. A implementação da nova ação deve considerar esses aspectos desde o início.
