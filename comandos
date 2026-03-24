@@ -1,6 +1,214 @@
-3. Agora move corretamente
-sudo mv Postman /opt/Postman
-🔥 4. Criar comando global
-sudo ln -s /opt/Postman/Postman /usr/bin/postman
-🔥 5. Testar
-postman
+curl 'https://api-staging-operacional.mova.vc/operator/price/657177/convert' \
+  -X 'PATCH' \
+  -H 'accept: application/json, text/plain, */*' \
+  -H 'accept-language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7' \
+  -H 'authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NzQzODE4MzQsImV4cCI6MTc3NDQyNTAzNCwibmJmIjoxNzc0MzgxODMzLCJkYXRhIjp7ImlkIjo4OTk1Mywicm9sZXMiOlt7ImlkIjo5MjI1MiwicGFwZWwiOiJPcGVyYWRvciBHZXJhbCIsInVsdGltYV9zaXR1YWNhbyI6IkNPTlRBIElOQ09NUExFVEEiLCJhdGl2byI6MX1dfX0.Gftcha42kjhGD3ZyMl-NXwSKtJrR2EkOJ76KsxD0SVc' \
+  -H 'cache-control: no-cache, no-store, must-revalidate' \
+  -H 'content-type: application/json' \
+  -H 'origin: https://staging-operacional.mova.vc' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://staging-operacional.mova.vc/' \
+  -H 'sec-ch-ua: "Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-site' \
+  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36' \
+  --data-raw '{"produto_id":23,"automatizar_status":true}'
+
+
+$priceIdGroup->patch('/convert', OperatorPriceConvert::class)
+                    ->add(OperatorPriceConvertValidation::class)
+                    ->add(new OperatorButtonsAuthorizationHandler(
+                        OperatorButtonPermissions::getPermissionButtons(OperatorButtonPermissions::PATCH_OPERATOR_PRICE_PRICE_ID_CONVERT),
+                        $priceIdGroup
+                    ))
+                    ->setName(OperatorButtonPermissions::getPermissionFullName(OperatorButtonPermissions::PATCH_OPERATOR_PRICE_PRICE_ID_CONVERT));
+
+                    <?php
+
+namespace Intec\MovaOperacionalApi\Action\Operator\Price;
+
+use Intec\MovaBase\Controller\HttpController;
+use Intec\MovaOperacionalApi\Dto\Operator\Price\OperatorPriceConvertDto;
+use Intec\MovaOperacionalApi\Exception\MovaOperacionalApiActionException;
+use Intec\MovaPriceOperations\Model\PriceOperations;
+use Intec\MovaPriceOperations\Model\ProductOperations;
+use Intec\MovaTaskEnqueuer\Service\CloudFnTasksEnqueuer;
+use Intec\MovaTaskEnqueuer\Service\Queue\FnQueue;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+
+class OperatorPriceConvert extends HttpController
+{
+    private CloudFnTasksEnqueuer $cloudFnTasksEnqueuer;
+    private ProductOperations $product;
+    private PriceOperations $price;
+
+    public function __construct(
+        CloudFnTasksEnqueuer $cloudFnTasksEnqueuer,
+        ProductOperations $product,
+        PriceOperations $price
+    ) {
+        $this->cloudFnTasksEnqueuer = $cloudFnTasksEnqueuer;
+        $this->product = $product;
+        $this->price = $price;
+    }
+
+    public function __invoke(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        int $priceId
+    ): ResponseInterface {
+        /** @var OperatorPriceConvertDto $priceConverterDto */
+        $priceConverterDto = $this->getDto($request);
+
+        $this->checkIfCanConvert($priceId, $priceConverterDto->productId);
+
+        $this->cloudFnTasksEnqueuer->sendTask(
+            FnQueue::PRICE_CONVERTION,
+            [
+                'cotacao_id' => $priceId,
+                'produto_id_alvo' => $priceConverterDto->productId,
+                'rodar_motor' => false,
+                'cancelar_original' => true,
+                'automatizar_status' => $priceConverterDto->automateStatus,
+            ]
+        );
+
+        return $this->toJson($response, 204);
+    }
+
+    private function checkIfCanConvert(int $priceId, int $targetProductId): void
+    {
+        $rawValues = $this->price->getPriceAndComplementaryData($priceId);
+        $price = $rawValues['price'];
+        $productId = $price['produto_id'];
+
+        if ($productId == $targetProductId) {
+            throw new MovaOperacionalApiActionException(
+                code: MovaOperacionalApiActionException::CODE_OPERATORPRICECONVERT_ALREADY_THIS_TYPE
+            );
+        }
+
+        if (!$this->product->areOfTheSamePersonType($productId, $targetProductId)) {
+            throw new MovaOperacionalApiActionException(
+                code: MovaOperacionalApiActionException::CODE_OPERATORPRICECONVERT_CANNOT_CONVERT
+            );
+        }
+    }
+}
+
+
+
+<?php
+
+namespace Intec\MovaOperacionalApi\Middleware\Validation\Operator\Price;
+
+use Intec\MovaBase\Dto\Dto;
+use Intec\MovaBase\Middleware\Validation\Validation;
+use Intec\MovaOperacionalApi\Dto\Operator\Price\OperatorPriceConvertDto;
+use Intec\PipeValidation\Pipe\Boolean;
+use Intec\PipeValidation\Pipe\Integer;
+
+class OperatorPriceConvertValidation extends Validation
+{
+    public function getSchema(): array
+    {
+        return [
+            'produto_id' => [
+                'required' => true,
+                'pipes' => [
+                    Integer::class => [
+                        Integer::MIN_VALUE => 1
+                    ]
+                ]
+            ],
+            'automatizar_status' => [
+                'default' => false,
+                'pipes' => [
+                    Boolean::class => []
+                ]
+            ]
+        ];
+    }
+
+    public function createDtoFromParams(array $params): Dto
+    {
+        return new OperatorPriceConvertDto(
+            $params['produto_id'],
+            $params['automatizar_status'],
+        );
+    }
+}
+
+
+<?php
+
+namespace Intec\MovaOperacionalApi\Middleware;
+
+use Intec\MovaOperacionalApi\Exception\MovaOperacionalApiMiddlewareException;
+use Intec\MovaOperacionalApi\Model\ButtonOperator;
+use Intec\MovaOperacionalApi\Model\Buttons;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Routing\RouteCollectorProxy;
+
+class OperatorButtonsAuthorizationHandler
+{
+    public function __construct(private array $buttonsAllowed, private RouteCollectorProxy $app)
+    {
+    }
+
+    public function __invoke(
+        ServerRequestInterface $request,
+        RequestHandlerInterface $requestHandler
+    ): ResponseInterface {
+        $user = $request->getAttribute('auth');
+
+        if (!$this->buttonsAllowed) {
+            return $requestHandler->handle($request);
+        }
+
+        /** @var ButtonOperator $buttonOperator */
+        $buttonOperator = $this->app->getContainer()->get(ButtonOperator::class);
+
+        $buttons = $buttonOperator->getButtonsByOperatorId($user['id']);
+
+        if (!$buttons || !$this->operatorHasAuthorization($buttons)) {
+            throw new MovaOperacionalApiMiddlewareException(
+                code: MovaOperacionalApiMiddlewareException::CODE_OPERATOR_BUTTON_ACCESS_DENIED
+            );
+        }
+
+        return $requestHandler->handle($request);
+    }
+
+    private function operatorHasAuthorization(array $operatorButtons): bool
+    {
+        $operatorButtonsName = array_column($operatorButtons, 'nome');
+
+        $operatorHasAuthorization = (bool) array_intersect($this->buttonsAllowed, $operatorButtonsName);
+
+        $endpointHasntAuthorization = (bool) array_intersect($this->buttonsAllowed, [Buttons::B0]);
+
+        return $operatorHasAuthorization || $endpointHasntAuthorization;
+    }
+}
+
+
+ public static function getPermissionButtons(string $permissionName): array
+    {
+        return self::PERMISSIONS[$permissionName]['botoes'];
+    }
+
+     public static function getPermissionFullName(string $permissionName): string
+    {
+        $permission = self::PERMISSIONS[$permissionName];
+
+        return sprintf('%s: %s', $permissionName, $permission['descricao']);
+    }
+
+    [GT] Análise técnica da funcionalidade atual "Converter cotação"
