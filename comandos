@@ -1,0 +1,3 @@
+wget https://dl.pstmn.io/download/latest/linux_64 -O Postman.AppImage
+chmod +x Postman.AppImage
+./Postman.AppImage
