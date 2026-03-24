@@ -212,3 +212,15 @@ class OperatorButtonsAuthorizationHandler
     }
 
     [GT] Análise técnica da funcionalidade atual "Converter cotação"
+Permitir converter cotação via "Gerir Integrações"
+
+
+Para o fluxo da esteira de originação do produto Vector (PF e PJ), cliente da Polígono, é necessário desenvolver uma ação no Gerir Integrações que permita disparar a conversão de cotação.
+
+Essa evolução se torna essencial porque as cotações desse produto possuem mais de uma data de desembolso e, após a assinatura do contrato, não é possível recalcular a operação.
+No fluxo originalmente proposto, a conversão da cotação seria realizada manualmente pelo time operacional para dar continuidade ao processo de desembolso após a assinatura. Entretanto, considerando o modelo atual e a necessidade de automação, faz-se necessária uma solução sistêmica.
+
+Solução
+Análise técnica da funcionalidade de converter cotação existente.
+Identificação de pontos de melhoria e gargalos de performance.
+Desenvolvimento da Ação para Converter Cotação no Gerir Integrações.
