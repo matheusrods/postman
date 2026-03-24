@@ -1,21 +1,19 @@
-wget https://dl.pstmn.io/download/latest/linux_64 -O Postman.AppImage
-chmod +x Postman.AppImage
-./Postman.AppImage
+sudo mv ~/postman/Postman /opt/Postman
+sudo ln -s /opt/Postman/Postman /usr/bin/postman
 
 
-[c22074q@VDICTXFDRH8398 postman]$ ls -la
-total 413240
-drwxrwxr-x  4 c22074q c22074q       136 Mar 24 14:59 .
-drwxrwxr-x  3 c22074q c22074q        45 Mar 24 14:52 ..
--rw-rw-r--  1 c22074q c22074q       559 Mar 24 14:52 comandos
-drwxrwxr-x 10 c22074q c22074q      4096 Mar 24 15:02 .git
--rw-rw-r--  1 c22074q c22074q        89 Mar 24 14:59 .gitattributes
-drwxrwxr-x  3 c22074q c22074q        32 Mar 22 23:39 Postman
--rwxrwxr-x  1 c22074q c22074q 141203234 Mar 24 14:59 Postman.AppImage
--rw-r--r--  1 c22074q c22074q 141203234 Mar 22 23:55 postman.tar.gz
--rw-rw-r--  1 c22074q c22074q 140732847 Mar 24 14:42 postman.zip
-[c22074q@VDICTXFDRH8398 postman]$ gunzip Postman.AppImage
-gzip: Postman.AppImage: unknown suffix -- ignored
-[c22074q@VDICTXFDRH8398 postman]$ 
+💡 (Opcional) Criar atalho no menu
 
+Se tiver interface gráfica:
+
+nano ~/.local/share/applications/postman.desktop
+
+Cola isso:
+
+[Desktop Entry]
+Name=Postman
+Exec=/opt/Postman/Postman
+Icon=/opt/Postman/app/resources/app/assets/icon.png
+Type=Application
+Categories=Development;
 
