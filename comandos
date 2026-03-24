@@ -1,3 +1,11 @@
 wget https://dl.pstmn.io/download/latest/linux_64 -O Postman.AppImage
 chmod +x Postman.AppImage
 ./Postman.AppImage
+
+
+[c22074q@VDICTXFDRH8398 projetos-people]$ wget https://dl.pstmn.io/download/latest/linux_64 -O Postman.AppImage
+--2026-03-24 14:52:13--  https://dl.pstmn.io/download/latest/linux_64
+Resolving dl.pstmn.io (dl.pstmn.io)... 13.224.125.82, 13.224.125.59, 13.224.125.114, ...
+Connecting to dl.pstmn.io (dl.pstmn.io)|13.224.125.82|:443... connected.
+HTTP request sent, awaiting response... 403 URLBlocked
+2026-03-24 14:52:13 ERROR 403: URLBlocked.
