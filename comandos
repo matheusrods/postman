@@ -1,79 +1,163 @@
-Análise técnica – Base para evolução da funcionalidade “Converter cotação” (Gerir Integrações)
+Precisamos que novos motivos de reprovação de uma cotação / proposta sejam adicionados no front da plataforma operacional, no modal já existente onde os operadores selecionam esse motivo, abaixo, um exemplo do modal: 
 
-Contexto
+pastedImage_3_4_2026__13_48_50_573.png
 
-Existe atualmente um endpoint responsável por disparar a conversão de cotação (PATCH /operator/price/{priceId}/convert), utilizado no fluxo operacional. Para atender o produto Vector (PF e PJ), será necessário expor essa funcionalidade no módulo “Gerir Integrações”, permitindo que a conversão seja acionada de forma sistêmica, após a assinatura do contrato, sem intervenção manual.
 
-A necessidade surge devido ao fato de que essas cotações possuem múltiplas datas de desembolso e não podem ser recalculadas após assinatura, exigindo uma etapa de conversão para continuidade do fluxo. No contexto do produto Vector, qualquer inconsistência nessa conversão pode impactar diretamente o processo de desembolso, podendo gerar bloqueios ou duplicidade de operações.
+Dor/demanda:
 
-Funcionamento atual
+Precisamos que os seguintes motivos de reprovação sejam adicionados no front para seleção dos operadores, tanto em caso de reprovação de cotação, quanto de proposta. Vale salientar, que a seleção definida pelo operador deve também ser refletida nos webhooks de cotação / proposta reprovada. 
 
-* A API recebe o id da cotação e o produto de destino
-* Realiza validações básicas:
+ 
 
-  * produto origem diferente do destino
-  * compatibilidade de tipo de pessoa
-* Dispara uma tarefa assíncrona (fila) para processamento da conversão
-* Retorna HTTP 204 sem conteúdo
+LISTAS DE REPROVAÇÃO:
 
-A conversão não é executada de forma síncrona, ficando sob responsabilidade de um consumidor de fila (Cloud Function ou equivalente).
+- Irregularidades do documento do veículo 
 
-Pontos positivos da implementação atual
+- CRLV vencido
 
-* Uso de processamento assíncrono, adequado para operações potencialmente pesadas
-* Baixo acoplamento entre API e lógica de conversão
-* Separação clara entre validação, autorização e execução
-* Estrutura simples, de fácil entendimento
+- Ausência de CRVL/ATPV
 
-Gargalos e limitações identificadas (com base no código atual)
+- Divergência de informações placa, renavan, chassi
 
-* Não há controle de idempotência. A chamada:
-  $this->cloudFnTasksEnqueuer->sendTask(...)
-  é executada diretamente sem verificação prévia, permitindo múltiplas conversões para a mesma cotação em caso de reprocessamentos ou chamadas duplicadas, podendo gerar inconsistência operacional e necessidade de correção manual.
+ 
 
-* Ausência de validação de estado da cotação. No trecho:
-  $rawValues = $this->price->getPriceAndComplementaryData($priceId);
-  $price = $rawValues['price'];
-  não há verificação se a cotação já foi convertida, está cancelada ou se encontra em um estado válido para conversão.
+- Restrições jurídicas
 
-* Dependência implícita da estrutura de dados. O acesso direto a:
-  $rawValues['price']
-  assume que o retorno sempre estará presente e consistente, sem validação defensiva, o que pode causar falhas em cenários de dados inconsistentes.
+- Bloqueio Renajud
 
-* Parâmetros fixos no código. Na chamada da fila:
-  'rodar_motor' => false,
-  'cancelar_original' => true
-  esses valores estão hardcoded, dificultando a evolução da regra de negócio ou reutilização da funcionalidade.
+- Restrição administrativa (ex. comunicação de venda)
 
-* Falta de rastreabilidade. O retorno:
-  return $this->toJson($response, 204);
-  não fornece identificador da task nem qualquer informação para acompanhamento, impossibilitando o monitoramento da execução.
+- Veículo com busca e apreensão em andamento
 
-* Autorização com possível impacto de performance. O trecho:
-  $buttons = $buttonOperator->getButtonsByOperatorId($user['id']);
-  realiza consulta ao banco a cada requisição, sem uso de cache, o que pode se tornar um gargalo em cenários de maior volume.
+- Bloqueio furto/roubo
 
-* Ausência de feedback em falhas assíncronas. Caso ocorra erro no processamento da fila, não há mecanismo direto de retorno ou visibilidade para o chamador.
+- Veiculo alienado outra IF
 
-Impactos para o Gerir Integrações
+ 
 
-Para expor essa funcionalidade no Gerir Integrações, é necessário considerar:
+- Pendências Financeiras
 
-* A ação será disparada por fluxo automatizado, não mais apenas manual
-* A ausência de idempotência pode gerar conversões duplicadas em cenários de retry
-* A falta de rastreabilidade dificulta o acompanhamento do fluxo
-* A ausência de validação de estado aumenta o risco de inconsistência após assinatura
+- IPVA em aberto
 
-Recomendações para evolução
+- Multas vencidas 
 
-* Implementar controle de idempotência por cotação
-* Retornar identificador da tarefa no momento do disparo
-* Criar mecanismo de acompanhamento de status da conversão
-* Incluir validações de estado da cotação antes de enfileirar
-* Avaliar externalização de parâmetros atualmente fixos
-* Considerar otimização ou cache na camada de autorização
-* Garantir observabilidade e tratamento de erro no processamento assíncrono
+- Licenciamento vencido
 
-Conclusão
+- Debitos em divida ativa
 
-A funcionalidade atual atende ao fluxo manual existente e possui uma base arquitetural adequada (assíncrona e desacoplada). No entanto, para suportar o uso no Gerir Integrações de forma segura e automatizada, é necessário evoluir pontos relacionados a controle de execução, rastreabilidade e validação de estado, reduzindo riscos de inconsistência e retrabalho operacional. A implementação da nova ação deve considerar esses aspectos desde o início.
+ 
+
+- Problemas de Elegibilidade do veículo ( perguntei p Kaw se isso será responsabilidade nossa)
+
+- Ano/ modelo fora da politica de crédito
+
+- Veiculo com histórico de sinistro de grande monta (valor do bem)
+
+- Classificação como recuperado leilão
+
+- Veiculo com alteração estrutural 
+
+- Veiculo com restrição de circulação
+
+ 
+
+- Inconsistência de titularidade 
+
+- Veiculo em nome de terceiro (observar cônjuge e regime comunhão)
+
+- Divergência entre documento e proponente
+
+- Veículo em nome de pessoa jurídica
+
+codigo:
+
+<?php
+
+namespace Intec\MovaPrice\Model;
+
+class ReasonStatus
+{
+    public const ACTION_REPROVED = 'Reprovado';
+    public const ACTION_CANCELED = 'Cancelado';
+
+    public const MESSAGES_REPROVE_CANCEL_PRICE = [
+        '01' => [
+            'value' => 'Cliente não aceitou as condições',
+            'secondary' => [
+                '01' => 'Prazo',
+                '02' => 'Prazo para liberação do desembolso',
+                '03' => 'Taxa',
+                '04' => 'Valor',
+                '05' => 'Valor da parcela',
+            ]
+        ],
+        '02' => [
+            'value' => 'Outros',
+            'secondary' => [
+                '01' => 'Operação expirada',
+                '02' => '+ Outro motivo',
+            ]
+        ]
+    ];
+
+    public const MESSAGES_REPROVE_CANCEL_PROPOSAL = [
+        '01' => [
+            'value' => 'Assinatura não realizada',
+            'secondary' => [
+                '01' => 'Avalista não assinou',
+                '02' => 'Cliente com problemas pessoais',
+                '03' => 'Cliente não informou o motivo',
+                '04' => 'Cliente tem empréstimo em outra instituição financeira',
+                '05' => 'Cônjuge não assinou',
+                '06' => 'Representante não assinou',
+                '07' => 'Reputação do produto',
+                '08' => 'Sem retorno do cliente',
+                '09' => 'Solicitante não assinou',
+                '10' => 'Cliente desistiu',
+            ]
+        ],
+        '02' => [
+            'value' => 'Cliente não aceitou as condições',
+            'secondary' => [
+                '01' => 'Prazo',
+                '02' => 'Prazo para liberação do desembolso',
+                '03' => 'Taxa',
+                '04' => 'Valor',
+                '05' => 'Valor da parcela',
+            ],
+        ],
+        '03' => [
+            'value' => 'Dados bancários',
+            'secondary' => [
+                '01' => 'Ausência de dados bancários cadastrados',
+            ],
+        ],
+        '04' => [
+            'value' => 'Divergência de informação',
+            'secondary' => [
+                '01' => 'CNPJ alterado',
+                '02' => 'CNPJ baixado',
+                '03' => 'Conta bancária informada tem outro titular',
+                '04' => 'CPF irregular',
+                '05' => 'Data de nascimento divergente',
+                '06' => 'Produto escolhido não é adequado',
+                '07' => 'Email incorreto',
+            ],
+        ],
+        '05' => [
+            'value' => 'Trava Bancária',
+            'secondary' => [
+                '01' => 'Recebíveis insuficientes',
+            ],
+        ],
+        '06' => [
+            'value' => 'Outros',
+            'secondary' => [
+                '01' => 'Condições negociadas em nova operação',
+                '02' => 'Operação expirada',
+                '03' => 'Sacado inadimplente',
+                '04' => '+ Outro motivo',
+            ],
+        ],
+    ];
+}
