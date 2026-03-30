@@ -1,76 +1,3 @@
-Precisamos que novos motivos de reprovação de uma cotação / proposta sejam adicionados no front da plataforma operacional, no modal já existente onde os operadores selecionam esse motivo, abaixo, um exemplo do modal: 
-
-pastedImage_3_4_2026__13_48_50_573.png
-
-
-Dor/demanda:
-
-Precisamos que os seguintes motivos de reprovação sejam adicionados no front para seleção dos operadores, tanto em caso de reprovação de cotação, quanto de proposta. Vale salientar, que a seleção definida pelo operador deve também ser refletida nos webhooks de cotação / proposta reprovada. 
-
- 
-
-LISTAS DE REPROVAÇÃO:
-
-- Irregularidades do documento do veículo 
-
-- CRLV vencido
-
-- Ausência de CRVL/ATPV
-
-- Divergência de informações placa, renavan, chassi
-
- 
-
-- Restrições jurídicas
-
-- Bloqueio Renajud
-
-- Restrição administrativa (ex. comunicação de venda)
-
-- Veículo com busca e apreensão em andamento
-
-- Bloqueio furto/roubo
-
-- Veiculo alienado outra IF
-
- 
-
-- Pendências Financeiras
-
-- IPVA em aberto
-
-- Multas vencidas 
-
-- Licenciamento vencido
-
-- Debitos em divida ativa
-
- 
-
-- Problemas de Elegibilidade do veículo ( perguntei p Kaw se isso será responsabilidade nossa)
-
-- Ano/ modelo fora da politica de crédito
-
-- Veiculo com histórico de sinistro de grande monta (valor do bem)
-
-- Classificação como recuperado leilão
-
-- Veiculo com alteração estrutural 
-
-- Veiculo com restrição de circulação
-
- 
-
-- Inconsistência de titularidade 
-
-- Veiculo em nome de terceiro (observar cônjuge e regime comunhão)
-
-- Divergência entre documento e proponente
-
-- Veículo em nome de pessoa jurídica
-
-codigo:
-
 <?php
 
 namespace Intec\MovaPrice\Model;
@@ -92,6 +19,51 @@ class ReasonStatus
             ]
         ],
         '02' => [
+            'value' => 'Irregularidades do documento do veículo',
+            'secondary' => [
+                '01' => 'CRLV vencido',
+                '02' => 'Ausência de CRLV/ATPV',
+                '03' => 'Divergência de informações placa, renavan, chassi',
+            ]
+        ],
+        '03' => [
+            'value' => 'Restrições jurídicas',
+            'secondary' => [
+                '01' => 'Bloqueio Renajud',
+                '02' => 'Restrição administrativa (ex. comunicação de venda)',
+                '03' => 'Veículo com busca e apreensão em andamento',
+                '04' => 'Bloqueio furto/roubo',
+                '05' => 'Veículo alienado outra IF',
+            ]
+        ],
+        '04' => [
+            'value' => 'Pendências financeiras',
+            'secondary' => [
+                '01' => 'IPVA em aberto',
+                '02' => 'Multas vencidas',
+                '03' => 'Licenciamento vencido',
+                '04' => 'Débitos em dívida ativa',
+            ]
+        ],
+        '05' => [
+            'value' => 'Problemas de elegibilidade do veículo',
+            'secondary' => [
+                '01' => 'Ano/modelo fora da política de crédito',
+                '02' => 'Veículo com histórico de sinistro de grande monta (valor do bem)',
+                '03' => 'Classificação como recuperado leilão',
+                '04' => 'Veículo com alteração estrutural',
+                '05' => 'Veículo com restrição de circulação',
+            ]
+        ],
+        '06' => [
+            'value' => 'Inconsistência de titularidade',
+            'secondary' => [
+                '01' => 'Veículo em nome de terceiro (observar cônjuge e regime comunhão)',
+                '02' => 'Divergência entre documento e proponente',
+                '03' => 'Veículo em nome de pessoa jurídica',
+            ]
+        ],
+        '07' => [
             'value' => 'Outros',
             'secondary' => [
                 '01' => 'Operação expirada',
@@ -151,6 +123,51 @@ class ReasonStatus
             ],
         ],
         '06' => [
+            'value' => 'Irregularidades do documento do veículo',
+            'secondary' => [
+                '01' => 'CRLV vencido',
+                '02' => 'Ausência de CRLV/ATPV',
+                '03' => 'Divergência de informações placa, renavan, chassi',
+            ],
+        ],
+        '07' => [
+            'value' => 'Restrições jurídicas',
+            'secondary' => [
+                '01' => 'Bloqueio Renajud',
+                '02' => 'Restrição administrativa (ex. comunicação de venda)',
+                '03' => 'Veículo com busca e apreensão em andamento',
+                '04' => 'Bloqueio furto/roubo',
+                '05' => 'Veículo alienado outra IF',
+            ],
+        ],
+        '08' => [
+            'value' => 'Pendências financeiras',
+            'secondary' => [
+                '01' => 'IPVA em aberto',
+                '02' => 'Multas vencidas',
+                '03' => 'Licenciamento vencido',
+                '04' => 'Débitos em dívida ativa',
+            ],
+        ],
+        '09' => [
+            'value' => 'Problemas de elegibilidade do veículo',
+            'secondary' => [
+                '01' => 'Ano/modelo fora da política de crédito',
+                '02' => 'Veículo com histórico de sinistro de grande monta (valor do bem)',
+                '03' => 'Classificação como recuperado leilão',
+                '04' => 'Veículo com alteração estrutural',
+                '05' => 'Veículo com restrição de circulação',
+            ],
+        ],
+        '10' => [
+            'value' => 'Inconsistência de titularidade',
+            'secondary' => [
+                '01' => 'Veículo em nome de terceiro (observar cônjuge e regime comunhão)',
+                '02' => 'Divergência entre documento e proponente',
+                '03' => 'Veículo em nome de pessoa jurídica',
+            ],
+        ],
+        '11' => [
             'value' => 'Outros',
             'secondary' => [
                 '01' => 'Condições negociadas em nova operação',
