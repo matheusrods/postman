@@ -1,180 +1,54 @@
-<?php
-
-namespace Intec\MovaPrice\Model;
-
-class ReasonStatus
 {
-    public const ACTION_REPROVED = 'Reprovado';
-    public const ACTION_CANCELED = 'Cancelado';
-
-    public const MESSAGES_REPROVE_CANCEL_PRICE = [
-        '01' => [
-            'value' => 'Cliente não aceitou as condições',
-            'secondary' => [
-                '01' => 'Prazo',
-                '02' => 'Prazo para liberação do desembolso',
-                '03' => 'Taxa',
-                '04' => 'Valor',
-                '05' => 'Valor da parcela',
-            ]
-        ],
-        '02' => [
-            'value' => 'Outros',
-            'secondary' => [
-                '01' => 'Operação expirada',
-                '02' => '+ Outro motivo',
-            ]
-        ],
-        '03' => [
-            'value' => 'Irregularidades do documento do veículo',
-            'secondary' => [
-                '01' => 'CRLV vencido',
-                '02' => 'Ausência de CRLV/ATPV',
-                '03' => 'Divergência de informações placa, renavan, chassi',
-            ]
-        ],
-        '04' => [
-            'value' => 'Restrições jurídicas',
-            'secondary' => [
-                '01' => 'Bloqueio Renajud',
-                '02' => 'Restrição administrativa (ex. comunicação de venda)',
-                '03' => 'Veículo com busca e apreensão em andamento',
-                '04' => 'Bloqueio furto/roubo',
-                '05' => 'Veículo alienado outra IF',
-            ]
-        ],
-        '05' => [
-            'value' => 'Pendências financeiras',
-            'secondary' => [
-                '01' => 'IPVA em aberto',
-                '02' => 'Multas vencidas',
-                '03' => 'Licenciamento vencido',
-                '04' => 'Débitos em dívida ativa',
-            ]
-        ],
-        '06' => [
-            'value' => 'Problemas de elegibilidade do veículo',
-            'secondary' => [
-                '01' => 'Ano/modelo fora da política de crédito',
-                '02' => 'Veículo com histórico de sinistro de grande monta (valor do bem)',
-                '03' => 'Classificação como recuperado leilão',
-                '04' => 'Veículo com alteração estrutural',
-                '05' => 'Veículo com restrição de circulação',
-            ]
-        ],
-        '07' => [
-            'value' => 'Inconsistência de titularidade',
-            'secondary' => [
-                '01' => 'Veículo em nome de terceiro (observar cônjuge e regime comunhão)',
-                '02' => 'Divergência entre documento e proponente',
-                '03' => 'Veículo em nome de pessoa jurídica',
-            ]
-        ],
-    ];
-
-    public const MESSAGES_REPROVE_CANCEL_PROPOSAL = [
-        '01' => [
-            'value' => 'Assinatura não realizada',
-            'secondary' => [
-                '01' => 'Avalista não assinou',
-                '02' => 'Cliente com problemas pessoais',
-                '03' => 'Cliente não informou o motivo',
-                '04' => 'Cliente tem empréstimo em outra instituição financeira',
-                '05' => 'Cônjuge não assinou',
-                '06' => 'Representante não assinou',
-                '07' => 'Reputação do produto',
-                '08' => 'Sem retorno do cliente',
-                '09' => 'Solicitante não assinou',
-                '10' => 'Cliente desistiu',
-            ]
-        ],
-        '02' => [
-            'value' => 'Cliente não aceitou as condições',
-            'secondary' => [
-                '01' => 'Prazo',
-                '02' => 'Prazo para liberação do desembolso',
-                '03' => 'Taxa',
-                '04' => 'Valor',
-                '05' => 'Valor da parcela',
-            ],
-        ],
-        '03' => [
-            'value' => 'Dados bancários',
-            'secondary' => [
-                '01' => 'Ausência de dados bancários cadastrados',
-            ],
-        ],
-        '04' => [
-            'value' => 'Divergência de informação',
-            'secondary' => [
-                '01' => 'CNPJ alterado',
-                '02' => 'CNPJ baixado',
-                '03' => 'Conta bancária informada tem outro titular',
-                '04' => 'CPF irregular',
-                '05' => 'Data de nascimento divergente',
-                '06' => 'Produto escolhido não é adequado',
-                '07' => 'Email incorreto',
-            ],
-        ],
-        '05' => [
-            'value' => 'Trava Bancária',
-            'secondary' => [
-                '01' => 'Recebíveis insuficientes',
-            ],
-        ],
-        '06' => [
-            'value' => 'Outros',
-            'secondary' => [
-                '01' => 'Condições negociadas em nova operação',
-                '02' => 'Operação expirada',
-                '03' => 'Sacado inadimplente',
-                '04' => '+ Outro motivo',
-            ],
-        ],
-        '07' => [
-            'value' => 'Irregularidades do documento do veículo',
-            'secondary' => [
-                '01' => 'CRLV vencido',
-                '02' => 'Ausência de CRLV/ATPV',
-                '03' => 'Divergência de informações placa, renavan, chassi',
-            ],
-        ],
-        '08' => [
-            'value' => 'Restrições jurídicas',
-            'secondary' => [
-                '01' => 'Bloqueio Renajud',
-                '02' => 'Restrição administrativa (ex. comunicação de venda)',
-                '03' => 'Veículo com busca e apreensão em andamento',
-                '04' => 'Bloqueio furto/roubo',
-                '05' => 'Veículo alienado outra IF',
-            ],
-        ],
-        '09' => [
-            'value' => 'Pendências financeiras',
-            'secondary' => [
-                '01' => 'IPVA em aberto',
-                '02' => 'Multas vencidas',
-                '03' => 'Licenciamento vencido',
-                '04' => 'Débitos em dívida ativa',
-            ],
-        ],
-        '10' => [
-            'value' => 'Problemas de elegibilidade do veículo',
-            'secondary' => [
-                '01' => 'Ano/modelo fora da política de crédito',
-                '02' => 'Veículo com histórico de sinistro de grande monta (valor do bem)',
-                '03' => 'Classificação como recuperado leilão',
-                '04' => 'Veículo com alteração estrutural',
-                '05' => 'Veículo com restrição de circulação',
-            ],
-        ],
-        '11' => [
-            'value' => 'Inconsistência de titularidade',
-            'secondary' => [
-                '01' => 'Veículo em nome de terceiro (observar cônjuge e regime comunhão)',
-                '02' => 'Divergência entre documento e proponente',
-                '03' => 'Veículo em nome de pessoa jurídica',
-            ],
-        ],
-    ];
+    "name": "incluirtecnologia/mova-management-db-migrations",
+    "description": "Projeto responsável por conter toda a estrutura para um projeto de migração",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Reinan Souza",
+            "email": "reinan.souza@mova.vc"
+        }
+    ],
+    "minimum-stability": "stable",
+    "repositories": {
+        "5": {
+            "type": "composer",
+            "url": "https://gitlab.mova.vc/api/v4/group/5/-/packages/composer/"
+        }
+    },
+    "require": {
+        "robmorgan/phinx": "^0.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "Intec\\MovaManagementDbMigrations\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Intec\\MovaManagementDbMigrations\\Test\\": "tests"
+        }
+    },
+    "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.8",
+        "phpunit/phpunit": "^9.5"
+    },
+    "config": {
+        "process-timeout": 0,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "bamarni/composer-bin-plugin": true,
+            "composer/package-versions-deprecated": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "infection/extension-installer": true
+        }
+    },
+    "extra": {
+        "bamarni-bin": {
+            "bin-links": true,
+            "target-directory": "vendor-bin",
+            "forward-command": true
+        }
+    }
 }
